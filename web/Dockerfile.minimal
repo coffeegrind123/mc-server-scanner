@@ -1,0 +1,45 @@
+# Build stage
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies with memory constraints
+ENV NODE_OPTIONS="--max_old_space_size=300"
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy source code
+COPY . .
+
+# Build only the API parts (standalone mode)
+RUN npm run build
+
+# Production stage - minimal runtime
+FROM node:18-alpine AS runner
+
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Copy only necessary files for API
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder /app/public ./public
+
+# Clean up to save space
+RUN rm -rf /tmp/* /var/cache/apk/* && \
+    npm cache clean --force
+
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max_old_space_size=128"
+
+CMD ["node", "server.js"]

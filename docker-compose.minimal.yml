@@ -1,0 +1,57 @@
+services:
+  # Lightweight database (internal only)
+  mongodb:
+    image: mongo:6.0-alpine
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: mcservers
+    volumes:
+      - mongodb_data:/data/db
+    # Optimize for low memory
+    command: --wiredTigerCacheSizeGB 0.1 --quiet --logpath /dev/null
+    mem_limit: 200m
+    
+  # Lightweight Redis cache (internal only)  
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Optimize for low memory
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru --save "" --appendonly no
+    mem_limit: 80m
+    
+  # API-only service (Next.js API routes only)
+  api:
+    build: 
+      context: ./web
+      dockerfile: Dockerfile.minimal
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://admin:password123@mongodb:27017/mcservers?authSource=admin
+    restart: unless-stopped
+    expose:
+      - "3000"
+    depends_on:
+      - redis
+      - mongodb
+    mem_limit: 180m
+      
+  # Lightweight reverse proxy for API only
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "443:443"    # HTTPS only - no HTTP redirect
+    volumes:
+      - ./Caddyfile.minimal:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    mem_limit: 50m
+
+volumes:
+  caddy_data:
+  caddy_config:
+  mongodb_data:

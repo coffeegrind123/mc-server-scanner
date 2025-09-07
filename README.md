@@ -69,6 +69,36 @@ For production deployment with HTTPS:
 
 Caddy will automatically obtain and renew SSL certificates from Let's Encrypt.
 
+## Minimal API-Only Deployment (512MB RAM)
+
+For low-memory VPS deployment with API-only functionality:
+
+1. **Use the minimal configuration**:
+   ```bash
+   docker compose -f docker-compose.minimal.yml up --build -d
+   ```
+
+2. **Configure for your domain**:
+   ```bash
+   # Edit the minimal Caddyfile
+   nano Caddyfile.minimal
+   # Replace 'api.yourdomain.com' with your API domain
+   # Replace 'your-email@example.com' with your email
+   ```
+
+3. **Memory allocation** (total ~510MB):
+   - MongoDB: 200MB (with 100MB cache)
+   - Redis: 80MB
+   - Next.js API: 180MB
+   - Caddy: 50MB
+
+4. **API endpoints available**:
+   - `https://api.yourdomain.com/api/trpc/mostRecent` - Get recent servers
+   - `https://api.yourdomain.com/api/trpc/search` - Search with filters
+   - `https://api.yourdomain.com/health` - Health check
+
+**Note**: This setup excludes the scanner and frontend to fit in 512MB RAM. You can populate the database from another source or run the scanner separately.
+
 # Front end
 
 The web frontend includes:
