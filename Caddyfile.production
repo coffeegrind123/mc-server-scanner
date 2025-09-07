@@ -1,0 +1,72 @@
+{
+	# Global options
+	admin off
+	# Email for Let's Encrypt (replace with your email)
+	email your-email@example.com
+}
+
+# Replace with your actual domain
+yourdomain.com {
+	# Automatic HTTPS with Let's Encrypt
+	reverse_proxy web:3000 {
+		header_up Host {http.request.host}
+		header_up X-Real-IP {http.request.remote.host}
+		header_up X-Forwarded-For {http.request.remote.host}
+		header_up X-Forwarded-Proto https
+	}
+
+	# Security headers for production
+	header {
+		# HSTS with preload
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		
+		# Prevent MIME type sniffing
+		X-Content-Type-Options nosniff
+		
+		# XSS Protection
+		X-XSS-Protection "1; mode=block"
+		
+		# Prevent framing
+		X-Frame-Options DENY
+		
+		# Content Security Policy (adjust as needed)
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; media-src 'self'; object-src 'none'; child-src 'none'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		
+		# Referrer Policy
+		Referrer-Policy strict-origin-when-cross-origin
+		
+		# Remove server information
+		-Server
+	}
+
+	# Rate limiting (adjust as needed)
+	rate_limit {
+		zone static_files {
+			key {http.request.uri.path}
+			events 100
+			window 1m
+		}
+		zone api {
+			key {http.request.remote.host}
+			events 50
+			window 1m
+		}
+	}
+
+	# Logging
+	log {
+		output stdout
+		format console
+		level INFO
+	}
+
+	# Gzip compression
+	encode gzip
+
+	# Handle specific routes with rate limiting
+	@api path /api/*
+	rate_limit @api api
+
+	@static path /_next/static/*
+	rate_limit @static static_files
+}

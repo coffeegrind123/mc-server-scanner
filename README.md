@@ -44,7 +44,30 @@ This will start all services:
 - **Worker**: Background processing for server pings
 - **Scanner**: Masscan-based server discovery
 
-The web interface will be available at `http://localhost` (port 80).
+The web interface will be available at:
+- **Development**: `http://localhost` (port 80)
+- **Production**: `https://yourdomain.com` (port 443 with automatic HTTPS)
+
+## Production Deployment
+
+For production deployment with HTTPS:
+
+1. **Point your domain** to your server
+2. **Replace the Caddyfile** with production version:
+   ```bash
+   cp Caddyfile.production Caddyfile
+   ```
+3. **Edit Caddyfile** to use your domain:
+   ```bash
+   # Replace 'yourdomain.com' with your actual domain
+   # Replace 'your-email@example.com' with your email for Let's Encrypt
+   ```
+4. **Start the services**:
+   ```bash
+   sudo docker compose up --build -d
+   ```
+
+Caddy will automatically obtain and renew SSL certificates from Let's Encrypt.
 
 # Front end
 
