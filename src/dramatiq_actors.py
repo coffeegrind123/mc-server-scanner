@@ -3,6 +3,7 @@ from datetime import datetime
 from time import time
 from concolor import Color
 from statusping import StatusPing
+from cracked_check import CrackedCheck
 from mongo import DB
 import dramatiq
 import cache
@@ -24,12 +25,18 @@ def slp(ip, count, total):
   try:
     status = StatusPing(ip)
     res = status.get_status()
+    
+    # Check if server is cracked
+    cracked_checker = CrackedCheck(ip)
+    cracked_status = cracked_checker.get_cracked_status()
+    
     # Generate entry object
     ts = int(time() * 1000)
     entry = {
     'ip': ip,
     'foundAt': ts,
     'foundBy': IDENT,
+    'cracked': cracked_status,
     }
     keys = ['description', 'players', 'version', 'ping', 'favicon']
     # append res properties to entry if it has defined keys
@@ -38,7 +45,7 @@ def slp(ip, count, total):
         entry.update({key: res[key]})
     
     cache.stage(entry)
-    worker_log.send(f'[{count}/{total}] {Color.GREEN}Succesfully{Color.END} pinged {Color.YELLOW}{ip}{Color.END}, staged to save to db.', __name__)
+    worker_log.send(f'[{count}/{total}] {Color.GREEN}Succesfully{Color.END} pinged {Color.YELLOW}{ip}{Color.END} (cracked: {cracked_status}), staged to save to db.', __name__)
   except:
     worker_log.send(f'[{count}/{total}] {Color.RED}{ip}{Color.END} is not a minecraft server I guess', __name__)
 

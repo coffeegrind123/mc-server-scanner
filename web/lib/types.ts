@@ -53,6 +53,7 @@ export interface RawServer extends MongoDocument {
 	previewsChat?: boolean;
 	modinfo?: any;
 	forgeData?: any;
+	cracked?: string; // 'true', 'false', 'unknown', 'error'
 }
 
 export type ParsedServer = {
@@ -71,6 +72,7 @@ export type ParsedServer = {
 	ping: number;
 	hasCustomFavicon: boolean;
 	favicon: string;
+	cracked?: string; // 'true', 'false', 'unknown', 'error'
 };
 
 export type AllowedUserQuery = 'mostRecent' | 'findByIp';

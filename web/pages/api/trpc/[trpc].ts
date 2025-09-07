@@ -35,6 +35,7 @@ export const appRouter = trpc
 		input: z.object({
 			limit: z.number().positive().default(6),
 			cursor: z.number().nullish(),
+			cracked: z.enum(['all', 'true', 'false', 'unknown', 'error']).default('all'),
 		}),
 		async resolve({ input }) {
 			const db = new DB();
@@ -42,9 +43,17 @@ export const appRouter = trpc
 			// Find all servers with foundAt less than cursor
 			// If no cursor was provided use a big ass number
 			const blacklist = await BlacklistModel.find<Blacklist>({});
-			const items = await FoundServerModel.find<RawServer>({
+			
+			let query: any = {
 				foundAt: { $lt: input.cursor ?? 0xffffffffffff },
-			})
+			};
+
+			// Filter by cracked status
+			if (input.cracked && input.cracked !== 'all') {
+				query.cracked = input.cracked;
+			}
+
+			const items = await FoundServerModel.find<RawServer>(query)
 				// Sort in a descending manner (more recent entries show first)
 				.sort({ foundAt: -1 })
 				// Limit the number of entries
@@ -107,27 +116,53 @@ export const appRouter = trpc
 			keyword: z.string().nullish(),
 			limit: z.number().positive().default(6),
 			cursor: z.number().nullish(),
+			cracked: z.enum(['all', 'true', 'false', 'unknown', 'error']).default('all'),
+			minPlayers: z.number().min(0).nullish(),
+			maxPlayers: z.number().min(0).nullish(),
+			version: z.string().nullish(),
 		}),
 		async resolve({ input }) {
 			const db = new DB();
 			await db.connect();
 			const blacklist = await BlacklistModel.find<Blacklist>({});
-			let items: RawServer[] = [];
-			if (!input.keyword) {
-				items = await FoundServerModel.find<RawServer>({
-					ip: input.ip,
-					foundAt: { $lt: input.cursor ?? 0xffffffffffff },
-				})
-					.sort({ foundAt: -1 })
-					.limit(input.limit);
-			} else {
-				items = await FoundServerModel.find<RawServer>({
-					foundAt: { $lt: input.cursor ?? 0xffffffffffff },
-					$text: { $search: input.keyword },
-				})
-					.sort({ foundAt: -1 })
-					.limit(input.limit);
+			let query: any = {
+				foundAt: { $lt: input.cursor ?? 0xffffffffffff },
+			};
+
+			// Filter by IP if provided
+			if (input.ip) {
+				query.ip = input.ip;
 			}
+
+			// Filter by keyword if provided
+			if (input.keyword) {
+				query.$text = { $search: input.keyword };
+			}
+
+			// Filter by cracked status
+			if (input.cracked && input.cracked !== 'all') {
+				query.cracked = input.cracked;
+			}
+
+			// Filter by player count
+			if (input.minPlayers !== null && input.minPlayers !== undefined) {
+				query['players.online'] = { $gte: input.minPlayers };
+			}
+			if (input.maxPlayers !== null && input.maxPlayers !== undefined) {
+				query['players.online'] = { 
+					...query['players.online'], 
+					$lte: input.maxPlayers 
+				};
+			}
+
+			// Filter by version if provided
+			if (input.version) {
+				query['version.name'] = { $regex: input.version, $options: 'i' };
+			}
+
+			const items = await FoundServerModel.find<RawServer>(query)
+				.sort({ foundAt: -1 })
+				.limit(input.limit);
 
 			let nextCursor: typeof input.cursor | undefined = undefined;
 			if (items.length >= input.limit) {

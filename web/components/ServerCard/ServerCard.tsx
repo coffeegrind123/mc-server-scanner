@@ -21,6 +21,7 @@ const ServerCard = ({
 	foundBy,
 	ping,
 	players,
+	cracked,
 }: ParsedServer) => {
 	const [rendered, setRendered] = useState(false);
 	const [showPlayers, setShowPlayers] = useState(false);
@@ -106,6 +107,21 @@ const ServerCard = ({
 				<span className='text-neutral-400'>Ping: </span>
 				{ping}
 			</li>
+			{cracked && (
+				<li>
+					<span className='text-neutral-400'>Status: </span>
+					<span className={`px-2 py-1 text-xs rounded-full ${
+						cracked === 'true' ? 'bg-orange-600 text-white' :
+						cracked === 'false' ? 'bg-green-600 text-white' :
+						cracked === 'unknown' ? 'bg-gray-600 text-white' :
+						'bg-red-600 text-white'
+					}`}>
+						{cracked === 'true' ? 'Cracked' : 
+						 cracked === 'false' ? 'Premium' : 
+						 cracked === 'unknown' ? 'Unknown' : 'Error'}
+					</span>
+				</li>
+			)}
 			<li>
 				<div
 					onClick={() => !animating && onShow(showPlayers)}

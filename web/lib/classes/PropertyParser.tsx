@@ -38,6 +38,7 @@ class PropertyParser {
 				? this.server.favicon
 				: def.favicon,
 			rawDescription: JSON.stringify(this.server.description),
+			cracked: this.server.cracked || 'unknown',
 		};
 	}
 

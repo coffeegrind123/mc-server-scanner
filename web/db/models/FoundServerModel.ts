@@ -20,6 +20,7 @@ const serverSchema = new Schema<RawServer>({
 	previewsChat: { type: Boolean, required: false },
 	modinfo: { type: Schema.Types.Mixed, requires: false },
 	forgeData: { type: Schema.Types.Mixed, requires: false },
+	cracked: { type: String, required: false }, // 'true', 'false', 'unknown', 'error'
 });
 
 const FoundServerModel =
