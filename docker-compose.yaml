@@ -1,30 +1,44 @@
 services:
-  # Back end for dramatiq and found ip cache
+  # Database (internal only - no external ports)
+  mongodb:
+    image: mongo:6.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: mcservers
+    volumes:
+      - mongodb_data:/data/db
+    # No ports exposed - only accessible from other containers
+    
+  # Redis cache (internal only)  
   redis:
     image: redislabs/rejson
     restart: unless-stopped
+    # No ports exposed - only accessible from other containers
     
-  # Web frontend (Next.js)
+  # Web frontend (internal only)
   web:
     build: 
       context: ./web
       dockerfile: Dockerfile
     environment:
       - NODE_ENV=production
-      - MONGO_URI
+      - MONGO_URI=mongodb://admin:password123@mongodb:27017/mcservers?authSource=admin
     restart: unless-stopped
     expose:
-      - "3000"
+      - "3000"  # Only exposed to other containers
     depends_on:
       - redis
+      - mongodb
       
-  # Reverse proxy (Caddy)
+  # Reverse proxy (ONLY service with external ports)
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "80:80"      # HTTP - only Caddy is exposed
+      - "443:443"    # HTTPS - only Caddy is exposed
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
@@ -32,28 +46,31 @@ services:
     depends_on:
       - web
       
-  # Background worker for server processing
+  # Background worker (internal only)
   worker:
     build: .
     environment:
-      - MONGO_URI
+      - MONGO_URI=mongodb://admin:password123@mongodb:27017/mcservers?authSource=admin
       - IDENT
     restart: unless-stopped
     depends_on:
       - redis
+      - mongodb
     command: dramatiq dramatiq_actors:redis_broker
     
-  # Scanner service
+  # Scanner service (internal only)
   scanner:
     build: .
     environment:
       - RATE
-      - MONGO_URI
+      - MONGO_URI=mongodb://admin:password123@mongodb:27017/mcservers?authSource=admin
     restart: unless-stopped
     depends_on:
       - worker
+      - mongodb
     command: python3 -m scanner
 
 volumes:
   caddy_data:
   caddy_config:
+  mongodb_data:
