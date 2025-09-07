@@ -5,6 +5,7 @@ const nextConfig = {
 	experimental: {
 		scrollRestoration: true,
 	},
+	output: 'standalone',
 };
 
 module.exports = nextConfig;

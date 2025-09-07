@@ -37,9 +37,22 @@ Run docker compose up
 
     sudo docker compose up
 
+This will start all services:
+- **Redis**: Cache and message broker
+- **Web Frontend**: Next.js application with server browser and filtering
+- **Caddy**: Reverse proxy serving the frontend on port 80
+- **Worker**: Background processing for server pings
+- **Scanner**: Masscan-based server discovery
+
+The web interface will be available at `http://localhost` (port 80).
+
 # Front end
 
-You can browse my scanned entries on [this](https://mc-server-scanner.vercel.app/) website.
+The web frontend includes:
+- Server browsing with infinite scroll
+- Advanced filtering by server status (cracked/premium), player count, and version
+- Real-time server status detection
+- Responsive design with dark theme
 
 The source code for it can be found in the `web/` directory.
 
@@ -50,3 +63,6 @@ Goals completed 🎉🎉🎉🎉
 - [x] Containerize application
 - [x] Write found servers to db (Mongo)
 - [x] Create front-end to browse servers
+- [x] Add cracked server detection
+- [x] Implement advanced filtering system
+- [x] Add Caddy reverse proxy for production deployment

@@ -1,0 +1,54 @@
+{
+	# Global options
+	auto_https off
+	admin off
+}
+
+:80 {
+	# Serve the Next.js application
+	reverse_proxy web:3000 {
+		header_up Host {http.request.host}
+		header_up X-Real-IP {http.request.remote.host}
+		header_up X-Forwarded-For {http.request.remote.host}
+		header_up X-Forwarded-Proto {http.request.scheme}
+	}
+
+	# Handle API routes
+	handle /api/* {
+		reverse_proxy web:3000
+	}
+
+	# Handle static assets
+	handle /_next/static/* {
+		reverse_proxy web:3000
+	}
+
+	# Handle all other routes
+	handle {
+		reverse_proxy web:3000
+	}
+
+	# Add some basic headers for security
+	header {
+		# Enable HSTS
+		Strict-Transport-Security max-age=31536000;
+		
+		# Prevent MIME type sniffing
+		X-Content-Type-Options nosniff
+		
+		# Enable XSS Protection
+		X-XSS-Protection "1; mode=block"
+		
+		# Control framing
+		X-Frame-Options DENY
+		
+		# Remove Server header
+		-Server
+	}
+
+	# Logging
+	log {
+		output stdout
+		format console
+	}
+}

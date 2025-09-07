@@ -2,19 +2,58 @@ services:
   # Back end for dramatiq and found ip cache
   redis:
     image: redislabs/rejson
+    restart: unless-stopped
+    
+  # Web frontend (Next.js)
+  web:
+    build: 
+      context: ./web
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI
+    restart: unless-stopped
+    expose:
+      - "3000"
+    depends_on:
+      - redis
+      
+  # Reverse proxy (Caddy)
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      
+  # Background worker for server processing
   worker:
     build: .
     environment:
       - MONGO_URI
       - IDENT
+    restart: unless-stopped
     depends_on:
       - redis
     command: dramatiq dramatiq_actors:redis_broker
+    
+  # Scanner service
   scanner:
     build: .
     environment:
       - RATE
       - MONGO_URI
+    restart: unless-stopped
     depends_on:
       - worker
     command: python3 -m scanner
+
+volumes:
+  caddy_data:
+  caddy_config:
